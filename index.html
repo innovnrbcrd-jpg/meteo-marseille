@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Météo Marseille</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; }
+.card {
+  padding:10px;
+  background:white;
+  border-radius:10px;
+  width:260px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.2);
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h3>Marseille météo</h3>
+
+<p>🌡 Température : <span id="temp"></span> °C</p>
+<p>💧 Humidité : <span id="hum"></span> %</p>
+<p>🌬 Vent : <span id="wind"></span> km/h</p>
+<p>💨 Rafales : <span id="gust"></span> km/h</p>
+<p>🧭 Direction : <span id="dir"></span>°</p>
+
+<canvas id="rose" width="200" height="200"></canvas>
+
+<h4>Prévisions</h4>
+<div id="forecast"></div>
+</div>
+
+<script>
+async function load() {
+
+  // 👉 API simple (Open-Meteo, pas besoin de clé)
+  const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=43.3&longitude=5.4&current_weather=true&hourly=temperature_2m,relativehumidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m");
+
+  const data = await res.json();
+
+  const c = data.current_weather;
+
+  document.getElementById("temp").innerText = c.temperature;
+  document.getElementById("wind").innerText = c.windspeed;
+  document.getElementById("dir").innerText = c.winddirection;
+
+  // humidité + rafales depuis hourly
+  document.getElementById("hum").innerText = data.hourly.relativehumidity_2m[0];
+  document.getElementById("gust").innerText = data.hourly.wind_gusts_10m[0];
+
+  drawRose(c.winddirection);
+
+  let html = "";
+  for (let i=0;i<6;i++) {
+    html += `<p>${data.hourly.time[i].slice(11,16)} → ${data.hourly.temperature_2m[i]}°C</p>`;
+  }
+  document.getElementById("forecast").innerHTML = html;
+}
+
+function drawRose(dir){
+  const ctx = document.getElementById("rose").getContext("2d");
+  ctx.clearRect(0,0,200,200);
+
+  ctx.beginPath();
+  ctx.moveTo(100,100);
+
+  const a = (dir-90)*Math.PI/180;
+  ctx.lineTo(100+80*Math.cos(a),100+80*Math.sin(a));
+
+  ctx.stroke();
+}
+
+load();
+</script>
+
+</body>
+</html>
