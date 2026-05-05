@@ -2,93 +2,162 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>Météo Marseille - MF13055029</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f4f4f4;
       margin: 0;
       padding: 10px;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
+      color: #1f2937;
     }
     .card {
-      background: white;
-      border-radius: 10px;
-      padding: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-      max-width: 300px;
+      max-width: 320px;
       margin: 0 auto;
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+      border: 1px solid #e5e7eb;
     }
-    .wind-rose {
-      margin: 6px 0;
-      width: 100%;
-      text-align: center;
+    h2 {
+      margin: 0 0 4px 0;
+      font-size: 20px;
     }
-    .wind-rose canvas {
-      border: 1px solid #ddd;
-      border-radius: 100%;
+    .sub {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .box {
+      background: #f9fafb;
+      border: 1px solid #eef2f7;
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .label {
+      font-size: 11px;
+      color: #6b7280;
+      margin-bottom: 4px;
+    }
+    .value {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+    .unit {
+      font-size: 12px;
+      font-weight: 400;
+      color: #6b7280;
+    }
+    .rose-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0 14px 0;
+    }
+    canvas {
+      background: #fff;
+      border-radius: 50%;
+    }
+    .forecast-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 8px 0 8px 0;
+    }
+    .forecast {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 210px;
+      overflow: auto;
+      padding-right: 4px;
     }
     .forecast-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 8px;
+      align-items: center;
       font-size: 12px;
-      margin: 1px 0;
+      background: #f9fafb;
+      border: 1px solid #eef2f7;
+      border-radius: 10px;
+      padding: 8px;
+    }
+    .time {
+      font-weight: 700;
+      color: #111827;
+    }
+    .line2 {
+      color: #374151;
+    }
+    .dir {
+      color: #6b7280;
+      font-size: 11px;
+      margin-top: 2px;
+    }
+    .error {
+      color: #b91c1c;
+      font-size: 12px;
+      margin-top: 8px;
+      display: none;
     }
   </style>
 </head>
 <body>
 
 <div class="card">
-  <h3>Marseille météo</h3>
+  <h2>Marseille</h2>
+  <div class="sub">Station MF13055029</div>
 
-  <p>🌡 Température : <span id="temp">--</span> °C</p>
-  <p>💧 Humidité : <span id="hum">--</span> %</p>
-  <p>🌬 Vent moyen : <span id="wind">--</span> km/h</p>
-  <p>💨 Rafales : <span id="gust">--</span> km/h</p>
-  <p>🧭 Direction : <span id="dir">--</span>°</p>
-
-  <div class="wind-rose">
-    <canvas id="rose" width="160" height="160"></canvas>
+  <div class="grid">
+    <div class="box">
+      <div class="label">Température</div>
+      <div class="value"><span id="temp">--</span><span class="unit"> °C</span></div>
+    </div>
+    <div class="box">
+      <div class="label">Humidité</div>
+      <div class="value"><span id="hum">--</span><span class="unit"> %</span></div>
+    </div>
+    <div class="box">
+      <div class="label">Vent moyen</div>
+      <div class="value"><span id="wind">--</span><span class="unit"> km/h</span></div>
+    </div>
+    <div class="box">
+      <div class="label">Rafales</div>
+      <div class="value"><span id="gust">--</span><span class="unit"> km/h</span></div>
+    </div>
   </div>
 
-  <h4>Prévisions AROME (Marseille)</h4>
-  <div id="forecast"></div>
+  <div class="box" style="margin-bottom:12px;">
+    <div class="label">Direction du vent</div>
+    <div class="value"><span id="dir">--</span><span class="unit"> °</span></div>
+    <div class="dir" id="cardinal">--</div>
+  </div>
+
+  <div class="rose-wrap">
+    <canvas id="rose" width="170" height="170"></canvas>
+  </div>
+
+  <div class="forecast-title">Prévisions AROME</div>
+  <div class="forecast" id="forecast"></div>
+
+  <div class="error" id="error">Impossible de charger les données météo.</div>
 </div>
 
 <script>
-  async function load() {
-    try {
-      // Open‑Meteo (AROME + temps réel, coordonnées Marseille)
-      const res = await fetch(
-        "https://api.open-meteo.com/v1/forecast?" +
-        "latitude=43.3&longitude=5.4&" +
-        "current_weather=true&" +
-        "hourly=temperature_2m,relativehumidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m"
-      );
+  const dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
 
-      const data = await res.json();
-      const c = data.current_weather;
-
-      document.getElementById("temp").innerText = c.temperature;
-      document.getElementById("wind").innerText = c.windspeed;
-      document.getElementById("dir").innerText = c.winddirection;
-
-      // humidité + rafales (1er point horaire)
-      document.getElementById("hum").innerText = data.hourly.relativehumidity_2m[0];
-      document.getElementById("gust").innerText = data.hourly.wind_gusts_10m[0];
-
-      drawRose(c.winddirection);
-
-      // 6 premières heures de prévision
-      let html = "";
-      for (let i = 0; i < 6; i++) {
-        const t = data.hourly.time[i].slice(11, 16);
-        const temp = data.hourly.temperature_2m[i];
-        const wind = data.hourly.wind_speed_10m[i];
-        html += `<div class="forecast-item">${t} → ${temp}°C | ${wind} km/h</div>`;
-      }
-      document.getElementById("forecast").innerHTML = html;
-
-    } catch (err) {
-      console.error("Erreur API météo", err);
-    }
+  function degToCardinal(deg) {
+    if (deg === null || deg === undefined || isNaN(deg)) return "--";
+    return dirs[Math.round(deg / 22.5) % 16];
   }
 
   function drawRose(dir) {
@@ -102,115 +171,97 @@
 
     ctx.clearRect(0, 0, w, h);
 
-    // cercle extérieur
     ctx.beginPath();
     ctx.arc(cx, cy, r, 0, 2 * Math.PI);
-    ctx.strokeStyle = "#ccc";
+    ctx.strokeStyle = "#d1d5db";
+    ctx.lineWidth = 2;
     ctx.stroke();
 
-    // flèche du vent
-    const rad = (dir - 90) * Math.PI / 180;
-    const x = cx + r * Math.cos(rad);
-    const y = cy + r * Math.sin(rad);
+    const marks = [
+      {t:"N", x:cx, y:cy-r-10},
+      {t:"E", x:cx+r+10, y:cy+4},
+      {t:"S", x:cx, y:cy+r+18},
+      {t:"O", x:cx-r-10, y:cy+4}
+    ];
 
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(x, y);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = "#d40000";
-    ctx.stroke();
-
-    // label cardinal
-    const dirs = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
-                  "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-    const card = dirs[Math.round(dir / 22.5) % 16];
-    ctx.font = "11px Arial";
-    ctx.fillStyle = "#000";
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "12px Arial";
     ctx.textAlign = "center";
-    ctx.fillText(`${card} (${dir}°)`, cx, h - 8);
+    marks.forEach(m => ctx.fillText(m.t, m.x, m.y));
+
+    if (dir !== null && dir !== undefined && !isNaN(dir)) {
+      const rad = (dir - 90) * Math.PI / 180;
+      const x = cx + r * Math.cos(rad);
+      const y = cy + r * Math.sin(rad);
+
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = "#dc2626";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, 2 * Math.PI);
+      ctx.fillStyle = "#dc2626";
+      ctx.fill();
+    }
+  }
+
+  async function load() {
+    try {
+      const res = await fetch(
+        "https://api.open-meteo.com/v1/forecast?" +
+        "latitude=43.2965&longitude=5.3698&" +
+        "current=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m&" +
+        "hourly=temperature_2m,relative_humidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m&" +
+        "models=meteofrance_arome&" +
+        "wind_speed_unit=kmh&timezone=auto"
+      );
+
+      const data = await res.json();
+      const c = data.current;
+
+      document.getElementById("temp").innerText = c.temperature_2m ?? "--";
+      document.getElementById("hum").innerText = c.relative_humidity_2m ?? "--";
+      document.getElementById("wind").innerText = c.wind_speed_10m ?? "--";
+      document.getElementById("gust").innerText = c.wind_gusts_10m ?? "--";
+      document.getElementById("dir").innerText = c.wind_direction_10m ?? "--";
+      document.getElementById("cardinal").innerText = degToCardinal(c.wind_direction_10m);
+
+      drawRose(c.wind_direction_10m);
+
+      let html = "";
+      const n = Math.min(6, data.hourly.time.length);
+      for (let i = 0; i < n; i++) {
+        const time = data.hourly.time[i].slice(11, 16);
+        const temp = data.hourly.temperature_2m[i];
+        const hum = data.hourly.relative_humidity_2m[i];
+        const wind = data.hourly.wind_speed_10m[i];
+        const gust = data.hourly.wind_gusts_10m[i];
+        const dir = data.hourly.wind_direction_10m[i];
+        const card = degToCardinal(dir);
+
+        html += `
+          <div class="forecast-item">
+            <div class="time">${time}</div>
+            <div>
+              <div class="line2">${temp}°C | ${hum}% | ${wind} km/h | raf. ${gust} km/h</div>
+              <div class="dir">${dir}° · ${card}</div>
+            </div>
+          </div>
+        `;
+      }
+      document.getElementById("forecast").innerHTML = html;
+      document.getElementById("error").style.display = "none";
+    } catch (e) {
+      document.getElementById("error").style.display = "block";
+    }
   }
 
   load();
-  // rafraîchissement toutes les 5 min
   setInterval(load, 300000);
 </script>
 
 </body>
-</html><!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<title>Météo Marseille</title>
-<style>
-body { font-family: Arial; background:#f4f4f4; }
-.card {
-  padding:10px;
-  background:white;
-  border-radius:10px;
-  width:260px;
-  box-shadow:0 2px 6px rgba(0,0,0,0.2);
-}
-</style>
-</head>
-<body>
-
-<div class="card">
-<h3>Marseille météo</h3>
-
-<p>🌡 Température : <span id="temp"></span> °C</p>
-<p>💧 Humidité : <span id="hum"></span> %</p>
-<p>🌬 Vent : <span id="wind"></span> km/h</p>
-<p>💨 Rafales : <span id="gust"></span> km/h</p>
-<p>🧭 Direction : <span id="dir"></span>°</p>
-
-<canvas id="rose" width="200" height="200"></canvas>
-
-<h4>Prévisions</h4>
-<div id="forecast"></div>
-</div>
-
-<script>
-async function load() {
-
-  // 👉 API simple (Open-Meteo, pas besoin de clé)
-  const res = await fetch("https://api.open-meteo.com/v1/forecast?latitude=43.3&longitude=5.4&current_weather=true&hourly=temperature_2m,relativehumidity_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m");
-
-  const data = await res.json();
-
-  const c = data.current_weather;
-
-  document.getElementById("temp").innerText = c.temperature;
-  document.getElementById("wind").innerText = c.windspeed;
-  document.getElementById("dir").innerText = c.winddirection;
-
-  // humidité + rafales depuis hourly
-  document.getElementById("hum").innerText = data.hourly.relativehumidity_2m[0];
-  document.getElementById("gust").innerText = data.hourly.wind_gusts_10m[0];
-
-  drawRose(c.winddirection);
-
-  let html = "";
-  for (let i=0;i<6;i++) {
-    html += `<p>${data.hourly.time[i].slice(11,16)} → ${data.hourly.temperature_2m[i]}°C</p>`;
-  }
-  document.getElementById("forecast").innerHTML = html;
-}
-
-function drawRose(dir){
-  const ctx = document.getElementById("rose").getContext("2d");
-  ctx.clearRect(0,0,200,200);
-
-  ctx.beginPath();
-  ctx.moveTo(100,100);
-
-  const a = (dir-90)*Math.PI/180;
-  ctx.lineTo(100+80*Math.cos(a),100+80*Math.sin(a));
-
-  ctx.stroke();
-}
-
-load();
-</script>
-
-</body>
-</html> 
+</html>
